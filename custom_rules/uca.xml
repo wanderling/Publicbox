@@ -1,0 +1,22 @@
+<?xml encoding="UTF-8" version="1.0"?>
+<actions>
+<action>
+	<icon>utilities-terminal</icon>
+	<name>Open Terminal Here</name>
+	<unique-id>1496625442513607-1</unique-id>
+	<command>exo-open --working-directory %f --launch TerminalEmulator</command>
+	<description>Example for a custom action</description>
+	<patterns>*</patterns>
+	<startup-notify/>
+	<directories/>
+</action>
+<action>
+	<icon>Thunar</icon>
+	<name>Thunar Root</name>
+	<unique-id>1496629866445072-1</unique-id>
+	<command>gksudo thunar %f</command>
+	<description></description>
+	<patterns>*</patterns>
+	<directories/>
+</action>
+</actions>
