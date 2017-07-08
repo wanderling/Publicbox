@@ -1,0 +1,10 @@
+[Unit]
+Description=PublicBox timesave service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/publicbox/bin/timesave.sh /opt/publicbox/conf/publicbox.conf recover
+TimeoutSec=20
+
+[Install]
+WantedBy=multi-user.target

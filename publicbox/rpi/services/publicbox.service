@@ -1,0 +1,14 @@
+[Unit]
+Description=PublicBox Service
+
+[Service]
+Type=idle
+RemainAfterExit=yes
+ExecStart=/opt/publicbox/init.d/publicbox_alt start
+ExecStop=/opt/publicbox/init.d/publicbox_alt stop
+#Restart=/opt/publicbox/init.d/publicbox_alt restart
+#PIDFile=/var/run/publicbox.pid
+
+[Install]
+WantedBy=multi-user.target
+
