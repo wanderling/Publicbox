@@ -1,0 +1,1 @@
+setenv.add-environment = ( "PYTHONPATH" => "/opt/publicbox/python_lib:/opt/publicbox/python_lib", "SHOUTBOX_GEN_HTMLFILE" => "/opt/publicbox/www/chat_content.html" , "SHOUTBOX_CHATFILE" => "/opt/publicbox/www/cgi-bin/data.pso" , "SHOUTBOX_CLIENT_TIMESTAMP" => "no" , "UPLOAD_PATH" => "/opt/publicbox/share/Shared" , "DISK_GEN_HTMLFILE" => "/opt/publicbox/www/diskusage.html" , )

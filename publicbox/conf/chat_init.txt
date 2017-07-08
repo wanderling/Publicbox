@@ -1,0 +1,1 @@
+<div class='message'><date>00:00:00</date> <name>PublicBox:</name> <data class='def'>Chat and share files freely!</data></div>

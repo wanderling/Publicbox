@@ -1,0 +1,301 @@
+#! /bin/sh
+# /etc/init.d/publicbox
+
+### BEGIN INIT INFO
+# Provides:          publicbox
+# Required-Start:    $all
+# Required-Stop:     $network $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      1 0 6
+# Short-Description: All services around publicbox
+# Description:       Based on /opt/publicbox/conf/publicbox.conf starts several services
+### END INIT INFO
+
+###  
+#  Default start-stop script for publicbox services on a laptop
+#   written by Matthias Strubel  (matthias.strubel@aod-rpg.de) 2011-02-22 
+#  licenced by gpl, feel free to improve and send me comments
+
+. /lib/lsb/init-functions
+
+
+[ -f /etc/default/rcS ] && . /etc/default/rcS
+
+# PATH for /opt publicbox folder
+PATH=$PATH:/opt/publicbox/bin
+
+PIDFILE_ASTERISK=/var/run/asterisk/asterisk.pid
+PIDFILE_DROOPY=/var/run/publicbox_droopy.pid
+PIDFILE_HOSTAPN=/var/run/publicbox_hostapn.pid
+PIDFILE_DNSMASQ=/var/run/publicbox_dnsmasq.pid
+PIDFILE_LIGHTTPD=/opt/publicbox/tmp/lighttpd.pid
+#PIDFILE_LIGHTTPD=/var/run/lighttpd.pid
+PIDFILE_SHOUTBOX=/opt/publicbox/tmp/shoutbox_daemon.pid
+PIDFILE_RADVD=/opt/publicbox/tmp/radvd.pid
+PIDFILE_IRC=/opt/publicbox/tmp/irc.pid
+
+PUBLICBOX=/opt/publicbox
+CONF=$PUBLICBOX/conf/publicbox.conf
+CONF_IRC=$PUBLICBOX/conf/irc.conf
+#CONF_DROOPY=/opt/publicbox/conf/droopy.conf #not used
+CONF_APN=$PUBLICBOX/conf/hostapd.conf
+
+#Some extra config files for dnsmasq
+CONF_DNSMASQ=$PUBLICBOX/conf/dnsmasq_generated.conf
+
+CONF_RADVD=$PUBLICBOX/conf/radvd_generated.conf
+
+CONF_LIGHTTPD=$PUBLICBOX/conf/lighttpd/lighttpd.conf
+
+export PYTHONPATH=:$PYTHONPATH:$PUBLICBOX_PYTHONPATH
+
+
+# Some things that run always
+touch /var/lock/publicbox
+
+if [ -f $CONF ] ; then
+   . $CONF 
+else 
+   log_failure_msg "Configuration file not found"
+   exit 1
+fi
+
+
+if [ -f $PUBLICBOX/conf/init_done ] ; then
+   INIT=OK
+else
+   $PUBLICBOX/bin/hooks/hook_pre_init.sh  "$CONF"
+   $PUBLICBOX/bin/install_publicbox.sh "$CONF" part2
+   $PUBLICBOX/bin/hooks/hook_post_init.sh  "$CONF"
+   touch   $PUBLICBOX/conf/init_done
+fi
+
+
+# Recreate the content folder, if it was deleted
+#  only if it is not already existing.
+#  This can be any time.
+if [ ! -d  $WWW_CONTENT ] ; then
+	$PUBLICBOX/bin/install_publicbox.sh "$CONF" content
+fi
+
+# Command Line for DNSMASQ,  use extra config file generated from command above
+CMD_DNSMASQ="-x $PIDFILE_DNSMASQ -C $CONF_DNSMASQ "
+
+# Carry out specific functions when asked to by the system
+case "$1" in
+  start)
+    log_daemon_msg "Starting script publicbox "
+    echo ""
+
+    # Generate hosts & dnsmasq file
+    $PUBLICBOX/bin/generate_config_files.sh  "$CONF"
+    
+    $PUBLICBOX/bin/hooks/hook_publicbox_start.sh  "$CONF"
+
+    echo "Empty tmp folder"
+    find   $PUBLICBOX/tmp/*  -exec rm {} \;
+
+    if [ "$CUSTOM_DIRLIST_COPY" = "yes" ]; then
+       echo "Copy over directory design files"
+       $PUBLICBOX/bin/distribute_files.sh $SHARE_FOLDER/Shared
+    fi
+
+    if [ "$PBX_JSON_GENERATION" = "yes" ]; then
+        $PUBLICBOX_FOLDER/bin/json_generation.sh  $CONF 
+    fi
+
+    if [ "$DO_IW" = "yes" ] ; then
+       log_daemon_msg " Setting up Interface (iw) "
+       iw $PHY_IF interface add $INTERFACE type managed
+    fi
+
+    if [ "$PROBE_INTERFACE" = yes ] ; then
+      log_daemon_msg "  Probing wlan"
+      #Setting up WLAN Interface
+      publicbox_setup_wlan.sh  $CONF probe
+    fi
+     if  [ $? -ne 0 ] ;  then
+       log_failure_msg "failed probe Interface"
+     else
+
+       # Only  activate
+       if  [ "$USE_APN" =  "yes" ] ;  then
+         log_daemon_msg  "Starting hostap... "
+         start-stop-daemon -m --start --background --pidfile $PIDFILE_HOSTAPN  --exec /usr/sbin/hostapd --  $CONF_APN
+         log_end_msg $?
+       fi
+
+      if [ "$DO_IFCONFIG" = yes ] ; then
+	log_daemon_msg "  Setting up wlan"
+        #Setting up WLAN Interface
+        publicbox_setup_wlan.sh  $CONF start
+        if  [ $? -ne 0 ] ;  then
+          log_failure_msg "failed setting up Interface"
+	  exit 99
+        fi
+      fi
+
+      #BRIDGE
+      if [ "$DO_BRIDGE" = "yes"  ] ; then
+         log_daemon_msg  "Adding $INTERFACE to bridge $BRIDGE //  brctl addif $BRIDGE  $INTERFACE "
+         sleep 1
+         BR_CMD="brctl addif  $BRIDGE  $INTERFACE"
+         ( $BR_CMD ; )
+         log_end_msg $?
+      fi
+
+       if [ "$USE_DNSMASQ" = "yes" ] ;  then
+         log_daemon_msg  "Starting dnsmasq... "
+   # pidfile is written by dnsmasq
+         start-stop-daemon --start --quiet --exec /usr/sbin/dnsmasq  --  $CMD_DNSMASQ  
+         log_end_msg $?
+       fi
+
+       #Setting up firewall rules
+       log_daemon_msg    "Setting up firewall rules..."
+       $PUBLICBOX_FOLDER/bin/firewall.sh -s
+       log_end_msg $?
+
+
+	if [ "$IPV6_ENABLE" = "yes" ] && [ "$IPV6_ADVERT" = "radvd" ] ; then
+	  log_daemon_msg "Starting radvd..."
+	  start-stop-daemon --start --quiet --exec radvd  -- -p $PIDFILE_RADVD -C $CONF_RADVD
+	  log_end_msg $?
+ 	fi
+
+
+        if [ "$DROOPY_ENABLED" = "yes" ] ; then
+          #Start here the PublicBox-Parts droopy i.e.
+          log_daemon_msg "Starting droopy..."
+          #Delete 0 Byte Files
+          delete_empty.sh  $UPLOADFOLDER
+          find  $UPLOADFOLDER/ -iname tmp\* -exec rm {} \;
+
+          DROOPY_USER=""
+          if [ "$DROOPY_USE_USER" = "yes" ] ; then
+            DROOPY_USER=" -c $LIGHTTPD_USER:$LIGHTTPD_GROUP "
+          fi
+          DROOPY_DO_CHMOD=""
+          test -n "$DROOPY_CHMOD" && DROOPY_DO_CHMOD="--chmod $DROOPY_CHMOD"
+          start-stop-daemon $DROOPY_USER -m --start --background  --pidfile $PIDFILE_DROOPY --exec $PUBLICBOX/bin/droopy -- -d "$UPLOADFOLDER" -m "$DROOPY_TXT" $DROOPY_DO_CHMOD $DROOPY_USERDIR $DROOPY_PORT
+          log_end_msg $?
+       fi
+
+       #Do shoutbox stuff
+       $PUBLICBOX/bin/shoutbox_stuff.sh $WWW_FOLDER $CONF
+
+
+       #Start here the lighttpd i.e.
+       log_daemon_msg "Starting lighttpd..."
+       start-stop-daemon --start --pidfile $PIDFILE_LIGHTTPD --exec /usr/sbin/lighttpd -- -f $CONF_LIGHTTPD
+       log_end_msg $?
+
+       #Start Global Chat daemon if needed.
+       if [ "$GLOBAL_CHAT" = "yes" ] ; then
+          log_daemon_msg "Starting global chat service..."
+          start-stop-daemon -m --start  --background --pidfile $PIDFILE_SHOUTBOX --startas $PUBLICBOX/bin/shoutbox_daemon.sh -- $CONF
+          log_end_msg $?
+       fi
+
+       #Start IRC Server
+       if [ "$ENABLE_IRC_SERVER" = "yes" ] ; then
+          
+	  . $CONF_IRC
+
+	  IRC_PARMS="--setuid $IRC_USER --daemon --motd '$IRC_MOTD' "
+
+	  if [ ! -z "$IRC_STATEDIR" ] ; then
+	     IRC_PARMS=" $IRCPARMS --statedir  '$IRC_STATEDIR' "
+	  fi
+
+          log_daemon_msg "Starting Miniircd..."
+	  start-stop-daemon $DROOPY_USER -m -S -p $PIDFILE_IRC -x $PUBLICBOX/bin/miniircd.py -- $IRC_PARMS
+	  log_end_msg $?
+       fi
+     fi
+
+     $PUBLICBOX/bin/hooks/hook_publicbox_start_done.sh  "$CONF"
+
+    amportal start
+
+    ;;
+  stop)
+    log_daemon_msg  "Stopping script publicbox"
+    echo ""
+
+     $PUBLICBOX/bin/hooks/hook_publicbox_stop.sh  "$CONF"
+
+    if [ "$ENABLE_IRC_SERVER" = "yes" ] ; then
+	log_daemon_msg "Stopping IRC..."
+	start-stop-daemon -K -q -p $PIDFILE_IRC 
+	log_end_msg $?
+    fi 
+
+       log_daemon_msg    "Removing firewall rules..."
+       $PUBLICBOX_FOLDER/bin/firewall.sh -k
+       log_end_msg $?
+
+    if [  "$USE_APN"  = "yes" ] ;  then
+       log_daemon_msg  "Stopping hostap... "
+       start-stop-daemon --stop --quiet  --pidfile $PIDFILE_HOSTAPN  --oknodo  --startas "hostapd"
+       log_end_msg  $?
+    fi
+    if [ "$USE_DNSMASQ" = "yes" ] ;  then 
+       log_daemon_msg "Stopping dnsmasq..."
+       start-stop-daemon --stop --quiet  --pidfile $PIDFILE_DNSMASQ  
+       log_end_msg $?
+    fi
+
+    if [ -e $PIDFILE_RADVD ] ; then
+	log_daemon_msg "Stopping radvd..."
+	start-stop-daemon --stop --quite --pidfile $PIDFILE_RADVD
+  	log_end_msg $?
+    fi
+
+    #Stop Global Chat daemon
+    if [ "$GLOBAL_CHAT" = "yes" ] ; then
+          log_daemon_msg "Stopping global chat service..."
+          start-stop-daemon --stop --quiet --pidfile $PIDFILE_SHOUTBOX
+          log_end_msg $?
+    fi
+
+    log_daemon_msg "Stopping lighttpd..."
+    start-stop-daemon --stop --retry 30 --quiet --pidfile $PIDFILE_LIGHTTPD
+    log_end_msg $?
+
+    if [ "$DROOPY_ENABLED" = "yes" ] ; then
+       #Kill Droopy
+       log_daemon_msg "Stopping droopy... "
+       start-stop-daemon --stop --quiet --pidfile  $PIDFILE_DROOPY --oknodo  --startas "python /opt/publicbox/bin/droopy"
+       log_end_msg $?
+    fi
+
+     if [ "$DO_IFCONFIG" = yes ] ; then
+       publicbox_setup_wlan.sh $CONF stop
+     fi
+
+     if [ "$DO_IW" = "yes" ] ; then
+        iw dev $INTERFACE del
+     fi
+
+     # REMOVE BRIDGE
+     if [ "$DO_BRIDGE" = "yes"  ] ; then
+         log_daemon_msg "Remove Bridge..."
+         BR_CMD="brctl delif  $BRIDGE  $INTERFACE"
+         ( $BR_CMD ; )
+         log_end_msg $?
+     fi
+
+     amportal stop
+
+
+     $PUBLICBOX/bin/hooks/hook_publicbox_stop_done.sh  "$CONF"
+
+    ;;
+  *)
+    echo "Usage: /etc/init.d/publicbox {start|stop}"
+    exit 1
+    ;;
+esac
+
+exit 0

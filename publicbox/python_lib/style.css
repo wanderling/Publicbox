@@ -1,0 +1,13 @@
+date		{ font-size: 10pt; color: #666666; font-family:Tahoma }
+name        { font-weight: bold; font-family:Tahoma }
+data		{ font-family: Tahoma }
+data.def	{ color: #000000 }
+data.blue	{ color: #0000FF }
+data.green	{ color: #008000 }
+data.orange	{ color: #FF8040 }
+data.red	{ color: #FF0000 }
+data.yellow	{ color: #FFFF00 }
+data.violet	{ color: #8A2BE2 }
+data.purple	{ color: #800080 }
+data.pink	{ color: #FFC0CB }
+data.lime	{ color: #00FF00 }
