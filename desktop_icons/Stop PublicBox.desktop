@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=PublicBox Shutdown
+Comment=Turns off all PublicBox functions
+Exec=gksudo -k -u root /opt/publicbox/init.d/publicbox stop
+Icon=/opt/publicbox/www/favicon.ico
+Terminal=true
+Type=Application
+Categories=Utility
+X-KeepTerminal=true

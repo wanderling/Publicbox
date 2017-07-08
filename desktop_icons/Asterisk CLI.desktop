@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Asterisk CLI
+Comment=
+Exec=lxterminal -e "sudo asterisk -r"
+Icon=/opt/publicbox/App_Images/orange_asterisk.gif
+Terminal=true
+Type=Application
+Categories=Utility

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=dnsmasq Shutdown
+Comment=Turns off dnsmasq
+Exec=gksudo -k -u root /etc/init.d/dnsmasq stop
+Icon=process-stop
+Terminal=true
+Type=Application
+Categories=Utility
+X-KeepTerminal=true

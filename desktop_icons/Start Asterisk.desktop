@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=Asterisk Startup
+Comment=Turns on Asterisk VoIP if not running
+Exec=gksudo -k -u root service asterisk start
+Icon=/opt/publicbox/App_Images/green_asterisk.png
+Terminal=true
+Type=Application
+Categories=Utility
+X-KeepTerminal=true

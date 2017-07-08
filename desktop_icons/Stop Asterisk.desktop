@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=Asterisk Shutdown
+Comment=Turns off Asterisk VoIP if running
+Exec=gksudo -k -u root service asterisk stop
+Icon=/opt/publicbox/App_Images/red_asterisk.png
+Terminal=true
+Type=Application
+Categories=Utility
+X-KeepTerminal=true

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=Thunar Root
+Comment=Start Thunar in root mode
+Exec=gksudo thunar
+Icon=Thunar
+Terminal=false
+Type=Application
+Categories=Utility
+X-KeepTerminal=false

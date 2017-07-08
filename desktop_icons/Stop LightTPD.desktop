@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=Lighttpd Shutdown
+Comment=Turns off LightTPD webserver
+Exec=gksudo -k -u root /etc/init.d/lighttpd stop
+Icon=process-stop
+Terminal=true
+Type=Application
+Categories=Utility
+X-KeepTerminal=true
