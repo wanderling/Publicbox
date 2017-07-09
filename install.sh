@@ -28,37 +28,46 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 echo "This script is designed only for Rasbian x86 or ARM (Raspberry Pi 3 is recommended!) at this time."
+echo "Publicbox is a 'internet-and-pbx-in-a-box' and is made to help with communications were there are none."
+echo "Please use responsibly!"
 echo "Press any key to continue."
 read -n 1 
 clear
 
-echo "Have you performed the Raspberry Pi configuration utility?"
-read -r -p "[Yes/No] " response
-echo
-if [[ "$response" =~ ^([nN][oO]|[nN])+$ ]]; then
-	echo "Please complete the Raspberry Pi configuration first."
-	rc_gui && exit 0
-fi
+ARCH=$(uname -m)
 
-echo "Would you like to set the current timezone?"
-read -r -p "[Yes/No] " response
-echo
-if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
-	dpkg-reconfigure tzdata
-fi
-
-echo "Would you like to set the locale?"
-read -r -p "[Yes/No] " response
-echo
-if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
-	eval "sudo dpkg-reconfigure locales"
-fi
-
-echo "Would you like to set the keyboard locale?"
-read -r -p "[Yes/No] " response
-echo
-if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
-	eval "sudo -u pi lxinput"
+if [ $ARCH = "TOBEFINISHED" ]
+then
+	echo "Have you performed the Raspberry Pi configuration utility?"
+	read -r -p "[Yes/No] " response
+	echo
+	if [[ "$response" =~ ^([nN][oO]|[nN])+$ ]]
+	then
+		echo "Please complete the Raspberry Pi configuration first."
+		rc_gui && exit 0
+	fi
+else
+	echo "Would you like to set the current timezone?"
+	read -r -p "[Yes/No] " response
+	echo
+	if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]
+	then
+		dpkg-reconfigure tzdata
+	fi
+	echo "Would you like to set the locale?"
+	read -r -p "[Yes/No] " response
+	echo
+	if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]
+	then
+		eval "sudo dpkg-reconfigure locales"
+	fi
+	echo "Would you like to set the keyboard locale?"
+	read -r -p "[Yes/No] " response
+	echo
+	if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]
+	then
+		eval "sudo -u pi lxinput"
+	fi
 fi
 	
 #Import PublicBox conf
