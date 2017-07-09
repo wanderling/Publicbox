@@ -28,38 +28,66 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 echo "This script is designed only for Rasbian x86 or ARM (Raspberry Pi 3 is recommended!) at this time."
-echo "Publicbox is a 'internet-and-pbx-in-a-box' and is made to help with communications were there are none."
+echo "Publicbox is a 'internet-and-pbx-in-a-box' and is made to be a communications service were there is none."
 echo "Please use responsibly!"
 echo "Press any key to continue."
 read -n 1 
 clear
 
+if [[ $1 ]]
+then
+	clear
+	echo "Starting install..."
+	sleep 3
+	clear
+else
+	echo "Useage: /bin/bash install.sh <default|board>"
+	exit 0
+fi
+	
+#Import PublicBox conf
+CURRENT_CONF=publicbox/conf/publicbox.conf
+scriptfile="$(readlink -f $0)"
+CURRENT_DIR="$(dirname ${scriptfile})"
+
+if [[ -f  "$CURRENT_DIR"/$CURRENT_CONF ]]
+then
+	. $CURRENT_CONF 2> /dev/null
+else
+	echo "PublicBox config is not in its normal directory"
+	exit 0
+fi
+
+#Detirmine what architecture we are installing to
 ARCH=$(uname -m)
 
 if [ $ARCH = "TOBEFINISHED" ]
 then
+	clear
+	echo "You seem to be on a Raspberry Pi."
 	echo "Have you performed the Raspberry Pi configuration utility?"
 	read -r -p "[Yes/No] " response
 	echo
 	if [[ "$response" =~ ^([nN][oO]|[nN])+$ ]]
 	then
-		echo "Please complete the Raspberry Pi configuration first."
+		echo "Please complete the Raspberry Pi configuration first. Then rerun this install script."
 		rc_gui && exit 0
 	fi
 else
+	echo "You seem to be running an $ARCH machine."
+	echo "Would you like to set the device locale?"
+	read -r -p "[Yes/No] " response
+	echo
+	if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]
+	then
+		dpkg-reconfigure locales
+	fi
 	echo "Would you like to set the current timezone?"
 	read -r -p "[Yes/No] " response
 	echo
 	if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]
 	then
 		dpkg-reconfigure tzdata
-	fi
-	echo "Would you like to set the locale?"
-	read -r -p "[Yes/No] " response
-	echo
-	if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]
-	then
-		eval "sudo dpkg-reconfigure locales"
 	fi
 	echo "Would you like to set the keyboard locale?"
 	read -r -p "[Yes/No] " response
@@ -69,39 +97,90 @@ else
 		eval "sudo -u pi lxinput"
 	fi
 fi
-	
-#Import PublicBox conf
-CURRENT_CONF=publicbox/conf/publicbox.conf
-scriptfile="$(readlink -f $0)"
-CURRENT_DIR="$(dirname ${scriptfile})"
 
-if [[ $1 ]]; then
-	echo "Installing..."
-else
-	echo "Useage: /bin/bash install.sh <default|board>"
-	exit 0
+#Installation customization
+echo "I will need to ask you some questions in order to customize and properly prepare"
+echo "your installation of Publicbox to your device."
+echo
+echo "Would you like to leave the 75-persistent-net-generator.rules file alone or use"
+echo "my modified version that ties your wifi adapter to your adapter name?"
+echo "Example: Wi-fi adapter #1 --> wlan0 and Wi-fi adapter #2 --> wlan1 always"
+echo "[L]eave unchanged or [C]hange"
+unset ANSWER
+while [ -z ${ANSWER} ]
+do
+	read ANSWER
+done
+if [[ $ANSWER = "C" || $ANSWER = "c" || $SURE = "Change" || $SURE = "change" || $SURE = "CHANGE" ]
+then
+	cp -f "$CURRENT_DIR"/custom_rules/75-persistent-net-generator.rules /lib/udev/rules.d/75-persistent-net-generator.rules
+	chown root:root /lib/udev/rules.d/75-persistent-net-generator.rules
+	chmod 755 /lib/udev/rules.d/75-persistent-net-generator.rules
 fi
 
-if [[ -f  "$CURRENT_DIR"/$CURRENT_CONF ]]; then
-	. $CURRENT_CONF 2> /dev/null
-else
-	echo "PublicBox config is not in its normal directory"
-	exit 0
+clear
+echo "Would you like to place commonly used shortcuts on the desktop? This will also"
+echo "remove your existing wallpaper. You can change this back anytime."
+echo "Examples: Start/Stop Publicbox, Start/Stop Asterisk etc."
+echo "[L]eave unchanged or [C]hange"
+unset ANSWER
+while [ -z ${ANSWER} ]
+do
+	read ANSWER
+done
+if [[ $ANSWER = "C" || $ANSWER = "c" || $SURE = "Change" || $SURE = "change" || $SURE = "CHANGE" ]
+then
+	cp -rv "$CURRENT_DIR"/desktop_icons/* /home/pi/Desktop
+	cp -f "$CURRENT_DIR"/custom_rules/desktop-items-0.conf /home/pi/.config/pcmanfm/LXDE-pi/desktop-items-0.conf
+	chown pi:pi /home/pi/.config/pcmanfm/LXDE-pi/desktop-items-0.conf
+	chmod 755 /home/pi/.config/pcmanfm/LXDE-pi/desktop-items-0.conf
+fi
+
+#install dependencies
+PKGSTOINSTALL="hostapd lighttpd dnsmasq iw thunar"
+if [ "$PKGSTOINSTALL" != "" ]
+then
+	unset SURE
+	echo -n "Some dependencies may be missing. Would you like to install them? (Y/n): "
+	read SURE
+	if [[ $SURE = "Y" || $SURE = "y" || $SURE = "" || $SURE = "yes" || $SURE = "Yes" ]]
+	then
+		apt-get update
+		apt-get upgrade -y
+		apt-get install -y $PKGSTOINSTALL
+		/etc/init.d/lighttpd stop
+		update-rc.d lighttpd remove
+		/etc/init.d/dnsmasq stop
+		update-rc.d dnsmasq remove
+		/etc/init.d/hostapd stop
+		update-rc.d hostapd remove
+	fi
+
+#Libreoffice is a pain and gets in the way while setting up. So I made an option to remove it completely.
+	unset SURE
+	echo "LibreOffice is a pain and gets in the way while setting up."
+	echo "So I made an option to remove it completely."
+	echo "You do not have to uninstall LibreOffice to use Publicbox!" 
+	echo -n "Would you like to remove LibreOffice? (Y/n): "
+	read SURE
+	if [[ $SURE = "Y" || $SURE = "y" || $SURE = "" || $SURE = "yes" || $SURE = "Yes" ]]
+	then
+		apt-get purge -y libreoffice*
+		clear
+	fi
 fi
 
 #begin setting up publicbox's home dir
-if [[ ! -d /opt ]]; then
+if [[ ! -d /opt ]]
+then
 	mkdir -p /opt
 fi
 
-cp -rv "$CURRENT_DIR"/publicbox /opt &> /dev/null
-cp -rv "$CURRENT_DIR"/desktop_icons/* /home/pi/Desktop &> /dev/null
+#Copy files
+cp -rv "$CURRENT_DIR"/publicbox /opt
 
-cp -f "$CURRENT_DIR"/custom_rules/75-persistent-net-generator.rules /lib/udev/rules.d/75-persistent-net-generator.rules
-chmod 755 /lib/udev/rules.d/75-persistent-net-generator.rules
-
-cp -f "$CURRENT_DIR"/custom_rules/70-persistent-net.rules /etc/udev/rules.d/70-persistent-net.rules
-chmod 755 /etc/udev/rules.d/70-persistent-net.rules
+#cp -f "$CURRENT_DIR"/custom_rules/70-persistent-net.rules /etc/udev/rules.d/70-persistent-net.rules
+#chmod 755 /etc/udev/rules.d/70-persistent-net.rules
 
 cp -f "$CURRENT_DIR"/custom_rules/sysctl.conf /etc/sysctl.conf
 chmod 755 /etc/sysctl.conf
@@ -113,10 +192,6 @@ cp -f "$CURRENT_DIR"/custom_rules/panel /home/pi/.config/lxpanel/LXDE-pi/panels/
 chown pi:pi /home/pi/.config/lxpanel/LXDE-pi/panels/panel
 chmod 755 /home/pi/.config/lxpanel/LXDE-pi/panels/panel
 
-cp -f "$CURRENT_DIR"/custom_rules/desktop-items-0.conf /home/pi/.config/pcmanfm/LXDE-pi/desktop-items-0.conf
-chown pi:pi /home/pi/.config/pcmanfm/LXDE-pi/desktop-items-0.conf
-chmod 755 /home/pi/.config/pcmanfm/LXDE-pi/desktop-items-0.conf
-
 cp -f "$CURRENT_DIR"/custom_rules/interfaces /etc/network/interfaces
 chown root:root /etc/network/interfaces
 chmod 755 /etc/network/interfaces
@@ -125,6 +200,12 @@ cp -f "$CURRENT_DIR"/custom_rules/wpa_supplicant.conf /etc/wpa_supplicant/wpa_su
 chown root:root /etc/wpa_supplicant/wpa_supplicant.conf
 chmod 755 /etc/wpa_supplicant/wpa_supplicant.conf
 
+mkdir /home/pi/.config/Thunar/
+chown pi:pi /home/pi/.config/Thunar/
+cp -f "$CURRENT_DIR"/custom_rules/uca.xml /home/pi/.config/Thunar/uca.xml
+chown pi:pi /home/pi/.config/Thunar/uca.xml
+chmod 755 /home/pi/.config/Thunar/uca.xml	
+
 echo "Finished copying files..."
 
 echo "$NET.$IP_SHORT publicbox.lan">>/etc/hosts
@@ -132,7 +213,8 @@ echo "$NET.$IP_SHORT publicbox">>/etc/hosts
 
 sed 's:DROOPY_USE_USER="no":DROOPY_USE_USER="yes":' -i /opt/publicbox/conf/publicbox.conf
 
-if [[ -d /etc/init.d/ ]]; then
+if [[ -d /etc/init.d/ ]]
+then
 	ln -s /opt/publicbox/init.d/publicbox /etc/init.d/publicbox
 	echo "To make PublicBox start at boot run: update-rc.d publicbox defaults"
 #	systemctl enable publicbox #This enables PublicBox at start up... could be useful for Live
@@ -142,36 +224,7 @@ else
 	echo "To make PublicBox start at boot run: systemctl enable publicbox"
 fi
 
-#install dependencies
-PKGSTOINSTALL="hostapd lighttpd dnsmasq iw thunar"
-if [ "$PKGSTOINSTALL" != "" ]; then
-	echo -n "Some dependencies may missing. Would you like to install them? (Y/n): "
-	read SURE
-	if [[ $SURE = "Y" || $SURE = "y" || $SURE = "" || $SURE = "yes" || $SURE = "Yes" ]]; then
-		apt-get update
-		apt-get upgrade -y
-		apt-get install -y $PKGSTOINSTALL
-		/etc/init.d/lighttpd stop
-		update-rc.d lighttpd remove
-		/etc/init.d/dnsmasq stop
-		update-rc.d dnsmasq remove
-		/etc/init.d/hostapd stop
-		update-rc.d hostapd remove
-		
-		mkdir /home/pi/.config/Thunar/
-		chown pi:pi /home/pi/.config/Thunar/
-		cp -f "$CURRENT_DIR"/custom_rules/uca.xml /home/pi/.config/Thunar/uca.xml
-		chown pi:pi /home/pi/.config/Thunar/uca.xml
-		chmod 755 /home/pi/.config/Thunar/uca.xml
-		
-	fi
 
-	echo -n "Would you like to remove LibreOffice? (Y/n): "
-	read SURE
-	if [[ $SURE = "Y" || $SURE = "y" || $SURE = "" || $SURE = "yes" || $SURE = "Yes" ]]; then
-	apt-get purge -y libreoffice*
-	fi
-fi
 
 #install publicbox with the given option
 case "$1" in
@@ -211,54 +264,8 @@ if [ "$key" = "" ]; then
 	sleep 3
 	clear
 	apt-get install -y asterisk
-
-	#SUDO_CHECK=$(id -Gn "asterisk"|grep -c "sudo")
-	#if [ "$SUDO_CHECK" = 0 ]; then
-	#	usermod -a -G sudo asterisk
-	#fi
 	
-	apt-get install -y asterisk-config
-	apt-get install -y asterisk-core-sounds-en
-	apt-get install -y asterisk-core-sounds-en-g722
-	apt-get install -y asterisk-core-sounds-en-wav
-	apt-get install -y asterisk-core-sounds-en-gsm
-	apt-get install -y asterisk-doc
-	apt-get install -y asterisk-modules
-	apt-get install -y asterisk-moh-opsound-g722
-	apt-get install -y asterisk-moh-opsound-gsm
-	apt-get install -y asterisk-moh-opsound-wav
-	apt-get install -y asterisk-mp3
-	apt-get install -y asterisk-ooh323
-	apt-get install -y asterisk-voicemail
-	apt-get install -y asterisk-voicemail-odbcstorage
-	apt-get install -y mysql-workbench
-
-	/etc/init.d/asterisk stop
-	update-rc.d asterisk remove
-
-	echo "Asterisk PBX has been installed..."
-	echo 
-	echo "Press any key to continue."
-	read -n 1
-	clear
-else
-	clear
-	echo "Cancelling Asterisk PBX install..."
-	sleep 1
-	clear
-fi
-clear
-echo "Please press 'Enter' to install FreePBX prerequisites, any other key to cancel."
-
-IFS=
-
-read -n 1 key
-if [ "$key" = "" ]; then
-	clear
-	echo "Installing FreePBX prerequisites..."
-	sleep 3
-	clear
-	HEADER_NAME=$`uname -r`
+	HEADER_NAME=$(uname -r)
 	apt-get install -y build-essential
 	apt-get install -y linux-headers-$HEADER_NAME
 	apt-get install -y openssh-server
@@ -302,26 +309,53 @@ if [ "$key" = "" ]; then
 	apt-get install -y sudo
 	apt-get install -y libmyodbc
 	apt-get install -y subversion
-	clear
-	RED='\e[31;5m'
-	NC='\e[0m'
-	echo -e "${RED}FreePBX has not yet been installed!!!${NC}"
-	echo
-	echo "This computer need to be rebooted first."
-	echo
-	echo "When the computer has finished rebooting, run 'sudo ./freepbx_install.sh'."
-	echo "This will continue the install."
-	echo
-	echo "Press any key to reboot."
+	apt-get install -y asterisk-config
+	apt-get install -y asterisk-core-sounds-en
+	apt-get install -y asterisk-core-sounds-en-g722
+	apt-get install -y asterisk-core-sounds-en-wav
+	apt-get install -y asterisk-core-sounds-en-gsm
+	apt-get install -y asterisk-doc
+	apt-get install -y asterisk-modules
+	apt-get install -y asterisk-moh-opsound-g722
+	apt-get install -y asterisk-moh-opsound-gsm
+	apt-get install -y asterisk-moh-opsound-wav
+	apt-get install -y asterisk-mp3
+	apt-get install -y asterisk-ooh323
+	apt-get install -y asterisk-voicemail
+	apt-get install -y asterisk-voicemail-odbcstorage
+	apt-get install -y mysql-workbench
+
+	/etc/init.d/asterisk stop
+	update-rc.d asterisk remove
+
+	ATT="with Asterisk PBX"
+
+	echo "Asterisk PBX has been installed..."
+	echo 
+	echo "Press any key to continue."
 	read -n 1
 	clear
-	reboot
-	exit 0
 else
 	clear
-	echo "Cancelling FreePBX prerequisites install..."
+	echo "Cancelling Asterisk PBX install..."
+
+	ATT="without Asterisk PBX"
+
 	sleep 1
 	clear
-	exit 0
 fi
+
+clear
+RED='\e[31;5m'
+NC='\e[0m'
+echo
+echo -e "${RED} Publicbox $ATT has finished installing!!!${NC}"
+echo
+echo "Please reboot this computer at your earliest convienence."
+echo
+echo "Thank you. I sincerely hope you enjoy Publicbox!"
+echo
+echo "For any bugs or suggestions, please feel free to drop me a"
+echo "line at danielsroseman@gmail.com"
+clear
 exit 0
