@@ -111,7 +111,7 @@ while [ -z ${ANSWER} ]
 do
 	read ANSWER
 done
-if [[ $ANSWER = "C" || $ANSWER = "c" || $SURE = "Change" || $SURE = "change" || $SURE = "CHANGE" ]
+if [[ $ANSWER = "C" || $ANSWER = "c" || $ANSWER = "Change" || $ANSWER = "change" || $ANSWER = "CHANGE" ]
 then
 	cp -f "$CURRENT_DIR"/custom_rules/75-persistent-net-generator.rules /lib/udev/rules.d/75-persistent-net-generator.rules
 	chown root:root /lib/udev/rules.d/75-persistent-net-generator.rules
@@ -128,7 +128,7 @@ while [ -z ${ANSWER} ]
 do
 	read ANSWER
 done
-if [[ $ANSWER = "C" || $ANSWER = "c" || $SURE = "Change" || $SURE = "change" || $SURE = "CHANGE" ]
+if [[ $ANSWER = "C" || $ANSWER = "c" || $ANSWER = "Change" || $ANSWER = "change" || $ANSWER = "CHANGE" ]
 then
 	cp -rv "$CURRENT_DIR"/desktop_icons/* /home/pi/Desktop
 	cp -f "$CURRENT_DIR"/custom_rules/desktop-items-0.conf /home/pi/.config/pcmanfm/LXDE-pi/desktop-items-0.conf
