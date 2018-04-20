@@ -61,7 +61,7 @@ fi
 #Detirmine what architecture we are installing to
 ARCH=$(uname -m)
 
-if [ $ARCH = "TOBEFINISHED" ]
+if [ $ARCH = "armv7l" ]
 then
 	clear
 	echo "You seem to be on a Raspberry Pi."
@@ -111,7 +111,7 @@ while [ -z ${ANSWER} ]
 do
 	read ANSWER
 done
-if [[ $ANSWER = "C" || $ANSWER = "c" || $ANSWER = "Change" || $ANSWER = "change" || $ANSWER = "CHANGE" ]
+if [[ $ANSWER = "C" || $ANSWER = "c" || $ANSWER = "Change" || $ANSWER = "change" || $ANSWER = "CHANGE" ]]
 then
 	cp -f "$CURRENT_DIR"/custom_rules/75-persistent-net-generator.rules /lib/udev/rules.d/75-persistent-net-generator.rules
 	chown root:root /lib/udev/rules.d/75-persistent-net-generator.rules
@@ -128,7 +128,7 @@ while [ -z ${ANSWER} ]
 do
 	read ANSWER
 done
-if [[ $ANSWER = "C" || $ANSWER = "c" || $ANSWER = "Change" || $ANSWER = "change" || $ANSWER = "CHANGE" ]
+if [[ $ANSWER = "C" || $ANSWER = "c" || $ANSWER = "Change" || $ANSWER = "change" || $ANSWER = "CHANGE" ]]
 then
 	cp -rv "$CURRENT_DIR"/desktop_icons/* /home/pi/Desktop
 	cp -f "$CURRENT_DIR"/custom_rules/desktop-items-0.conf /home/pi/.config/pcmanfm/LXDE-pi/desktop-items-0.conf
@@ -229,14 +229,13 @@ fi
 #install publicbox with the given option
 case "$1" in
 	default)
-		/opt/publicbox/bin/install_publicbox.sh /opt/publicbox/conf/publicbox.conf part2
+		sudo bash /opt/publicbox/bin/install_publicbox.sh /opt/publicbox/conf/publicbox.conf part2
 		;;
 	board)
-		/opt/publicbox/bin/install_publicbox.sh /opt/publicbox/conf/publicbox.conf imageboard
+		sudo bash /opt/publicbox/bin/install_publicbox.sh /opt/publicbox/conf/publicbox.conf imageboard
 		echo "############################################################################"
 		echo "#Edit /opt/publicbox/share/board/config.pl and change ADMIN_PASS and SECRET#"
 		echo "############################################################################"
-		exit 0
 		;;
 	*)
 		echo "$1 is not an option. Useage: /bin/bash install.sh <default|board>"
