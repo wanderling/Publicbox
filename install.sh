@@ -99,11 +99,13 @@ else
 fi
 
 #Installation customization
-echo "I will need to ask you some questions in order to customize and properly prepare"
+echo "You will be asked some questions in order to customize and properly prepare"
 echo "your installation of Publicbox to your device."
 echo
 echo "Would you like to leave the 75-persistent-net-generator.rules file alone or use"
-echo "my modified version that ties your wifi adapter to your adapter name?"
+echo "the modified version that ties your wifi adapter to your adapter name? This is"
+echo "helpful if you have mltiple adapters on your machine and need PublicBox to use a"
+echo "specific adapter."
 echo "Example: Wi-fi adapter #1 --> wlan0 and Wi-fi adapter #2 --> wlan1 always"
 echo "[L]eave unchanged or [C]hange"
 unset ANSWER
