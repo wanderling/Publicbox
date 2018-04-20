@@ -356,5 +356,4 @@ echo "Thank you. I sincerely hope you enjoy Publicbox!"
 echo
 echo "For any bugs or suggestions, please feel free to drop me a"
 echo "line at danielsroseman@gmail.com"
-clear
 exit 0
