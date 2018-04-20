@@ -71,7 +71,7 @@ then
 	if [[ "$response" =~ ^([nN][oO]|[nN])+$ ]]
 	then
 		echo "Please complete the Raspberry Pi configuration first. Then rerun this install script."
-		rc_gui && exit 0
+		exit 0
 	fi
 else
 	echo "You seem to be running an $ARCH machine."
@@ -138,38 +138,43 @@ then
 	chmod 755 /home/pi/.config/pcmanfm/LXDE-pi/desktop-items-0.conf
 fi
 
-#install dependencies
-PKGSTOINSTALL="hostapd lighttpd dnsmasq iw thunar"
-if [ "$PKGSTOINSTALL" != "" ]
+#Install dependencies
+unset SURE
+echo -n "Some dependencies may be missing. Would you like to install them? (Y/n): "
+read SURE
+if [[ $SURE = "Y" || $SURE = "y" || $SURE = "" || $SURE = "yes" || $SURE = "Yes" ]]
 then
-	unset SURE
-	echo -n "Some dependencies may be missing. Would you like to install them? (Y/n): "
-	read SURE
-	if [[ $SURE = "Y" || $SURE = "y" || $SURE = "" || $SURE = "yes" || $SURE = "Yes" ]]
-	then
-		apt-get update
-		apt-get upgrade -y
-		apt-get install -y $PKGSTOINSTALL
-		/etc/init.d/lighttpd stop
-		update-rc.d lighttpd remove
-		/etc/init.d/dnsmasq stop
-		update-rc.d dnsmasq remove
-		/etc/init.d/hostapd stop
-		update-rc.d hostapd remove
-	fi
-
+    PKGSTOINSTALL="hostapd lighttpd dnsmasq iw thunar"
+    apt-get update
+    apt-get upgrade -y
+    
+    #Check for dependencies 
+    for i in $PKGSTOINSTALL ; do
+        dpkg-query -W -f='${Package}\n' | grep ^$i$ > /dev/null
+        if [ $? != 0 ] ; then
+            echo "Installing $i..."
+            aptitude install $i -y
+        fi
+    done  
+fi
+/etc/init.d/lighttpd stop
+update-rc.d lighttpd remove
+/etc/init.d/dnsmasq stop
+update-rc.d dnsmasq remove
+/etc/init.d/hostapd stop
+update-rc.d hostapd remove
+    
 #Libreoffice is a pain and gets in the way while setting up. So I made an option to remove it completely.
-	unset SURE
-	echo "LibreOffice is a pain and gets in the way while setting up."
-	echo "So I made an option to remove it completely."
-	echo "You do not have to uninstall LibreOffice to use Publicbox!" 
-	echo -n "Would you like to remove LibreOffice? (Y/n): "
-	read SURE
-	if [[ $SURE = "Y" || $SURE = "y" || $SURE = "" || $SURE = "yes" || $SURE = "Yes" ]]
-	then
-		apt-get purge -y libreoffice*
-		clear
-	fi
+unset SURE
+echo "LibreOffice is a pain and gets in the way while setting up."
+echo "So I made an option to remove it completely."
+echo "You do not have to uninstall LibreOffice to use Publicbox!" 
+echo -n "Would you like to remove LibreOffice? (Y/n): "
+read SURE
+if [[ $SURE = "Y" || $SURE = "y" || $SURE = "" || $SURE = "yes" || $SURE = "Yes" ]]
+then
+	apt-get purge -y libreoffice*
+	clear
 fi
 
 #begin setting up publicbox's home dir
@@ -180,6 +185,7 @@ fi
 
 #Copy files
 cp -rv "$CURRENT_DIR"/publicbox /opt
+chmod -R 755 /opt
 
 #cp -f "$CURRENT_DIR"/custom_rules/70-persistent-net.rules /etc/udev/rules.d/70-persistent-net.rules
 #chmod 755 /etc/udev/rules.d/70-persistent-net.rules
@@ -202,8 +208,11 @@ cp -f "$CURRENT_DIR"/custom_rules/wpa_supplicant.conf /etc/wpa_supplicant/wpa_su
 chown root:root /etc/wpa_supplicant/wpa_supplicant.conf
 chmod 755 /etc/wpa_supplicant/wpa_supplicant.conf
 
-mkdir /home/pi/.config/Thunar/
-chown pi:pi /home/pi/.config/Thunar/
+if [[ ! -d /home/pi/.config/Thunar/ ]]
+then
+	mkdir -p /home/pi/.config/Thunar/
+	chown pi:pi /home/pi/.config/Thunar/
+fi
 cp -f "$CURRENT_DIR"/custom_rules/uca.xml /home/pi/.config/Thunar/uca.xml
 chown pi:pi /home/pi/.config/Thunar/uca.xml
 chmod 755 /home/pi/.config/Thunar/uca.xml	
@@ -267,64 +276,18 @@ if [ "$key" = "" ]; then
 	apt-get install -y asterisk
 	
 	HEADER_NAME=$(uname -r)
-	apt-get install -y build-essential
-	apt-get install -y linux-headers-$HEADER_NAME
-	apt-get install -y openssh-server
-	apt-get install -y mysql-server
-	apt-get install -y mysql-client
-	apt-get install -y bison
-	apt-get install -y flex
-	apt-get install -y php5-cgi
-	apt-get install -y php5
-	apt-get install -y php5-curl
-	apt-get install -y php5-cli
-	apt-get install -y php5-mysql
-	apt-get install -y php-pear
-	apt-get install -y php5-gd
-	apt-get install -y curl
-	apt-get install -y sox
-	apt-get install -y libncurses5-dev
-	apt-get install -y libssl-dev
-	apt-get install -y libmysqlclient-dev
-	apt-get install -y mpg123
-	apt-get install -y libxml2-dev
-	apt-get install -y libnewt-dev
-	apt-get install -y sqlite3
-	apt-get install -y libsqlite3-dev
-	apt-get install -y pkg-config
-	apt-get install -y automake
-	apt-get install -y libtool
-	apt-get install -y autoconf
-	apt-get install -y git
-	apt-get install -y unixodbc-dev
-	apt-get install -y uuid
-	apt-get install -y uuid-dev
-	apt-get install -y libasound2-dev
-	apt-get install -y libogg-dev
-	apt-get install -y libvorbis-dev
-	apt-get install -y libcurl4-openssl-dev
-	apt-get install -y libical-dev
-	apt-get install -y libneon27-dev
-	apt-get install -y libsrtp0-dev
-	apt-get install -y libspandsp-dev
-	apt-get install -y sudo
-	apt-get install -y libmyodbc
-	apt-get install -y subversion
-	apt-get install -y asterisk-config
-	apt-get install -y asterisk-core-sounds-en
-	apt-get install -y asterisk-core-sounds-en-g722
-	apt-get install -y asterisk-core-sounds-en-wav
-	apt-get install -y asterisk-core-sounds-en-gsm
-	apt-get install -y asterisk-doc
-	apt-get install -y asterisk-modules
-	apt-get install -y asterisk-moh-opsound-g722
-	apt-get install -y asterisk-moh-opsound-gsm
-	apt-get install -y asterisk-moh-opsound-wav
-	apt-get install -y asterisk-mp3
-	apt-get install -y asterisk-ooh323
-	apt-get install -y asterisk-voicemail
-	apt-get install -y asterisk-voicemail-odbcstorage
-	apt-get install -y mysql-workbench
+	ASTERISKPKGS="mysql-workbench asterisk-voicemail-odbcstorage asterisk-voicemail asterisk-ooh323 asterisk-mp3 asterisk-moh-opsound-wav asterisk-moh-opsound-gsm asterisk-moh-opsound-g722 asterisk-modules asterisk-doc asterisk-core-sounds-en-gsm asterisk-core-sounds-en-wav asterisk-core-sounds-en-g722 asterisk-core-sounds-en asterisk-config subversion libmyodbc sudo libspandsp-dev libsrtp0-dev libneon27-dev libical-dev libcurl4-openssl-dev libvorbis-dev libogg-dev libasound2-dev uuid-dev uuid unixodbc-dev git autoconf libtool automake pkg-config libsqlite3-dev sqlite3 libnewt-dev libxml2-dev mpg123 libmysqlclient-dev libssl-dev libncurses5-dev build-essential linux-headers-$HEADER_NAME openssh-server mysql-server mysql-client bison flex php5-cgi php5 php5-curl php5-cli php5-mysql php-pear php5-gd curl sox "
+	apt-get update
+	apt-get upgrade -y
+    
+	#Check for dependencies 
+	for i in $ASTERISKPKGS ; do
+        dpkg-query -W -f='${Package}\n' | grep ^$i$ > /dev/null
+        if [ $? != 0 ] ; then
+            echo "Installing $i..."
+            aptitude install $i -y
+        fi
+	done
 
 	/etc/init.d/asterisk stop
 	update-rc.d asterisk remove
