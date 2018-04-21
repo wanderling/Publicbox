@@ -28,15 +28,14 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 versionId=$( cat /etc/os-release | grep -i "VERSION_ID")
-if [ $versionId != ''VERSION_ID="8"' ]; then
+if [[ $versionId != 'VERSION_ID="8"' ]]; then
 	clear
 	echo "I am sorry. This install is meant for Raspbian (Debian) Jessie."
 	echo "I cannot continue."
 	exit 0
 fi
 
-if [[ $1 ]]
-then
+if [[ $1 ]]; then
 	clear
 	echo "Starting install..."
 	sleep 3
@@ -70,15 +69,13 @@ fi
 #Detirmine what architecture we are installing to
 ARCH=$(uname -m)
 
-if [ $ARCH = "armv7l" ]
-then
+if [[ $ARCH = "armv7l" ]]; then
 	clear
 	echo "You seem to be on a Raspberry Pi."
 	echo "Have you performed the Raspberry Pi configuration utility?"
 	read -r -p "[Yes/No] " response
 	echo
-	if [[ "$response" =~ ^([nN][oO]|[nN])+$ ]]
-	then
+	if [[ "$response" =~ ^([nN][oO]|[nN])+$ ]]; then
 		echo "Please complete the Raspberry Pi configuration first. Then rerun this install script."
 		exit 0
 	fi
@@ -87,22 +84,19 @@ else
 	echo "Would you like to set the device locale?"
 	read -r -p "[Yes/No] " response
 	echo
-	if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]
-	then
+	if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
 		dpkg-reconfigure locales
 	fi
 	echo "Would you like to set the current timezone?"
 	read -r -p "[Yes/No] " response
 	echo
-	if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]
-	then
+	if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
 		dpkg-reconfigure tzdata
 	fi
 	echo "Would you like to set the keyboard locale?"
 	read -r -p "[Yes/No] " response
 	echo
-	if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]
-	then
+	if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
 		eval "sudo -u pi lxinput"
 	fi
 fi
@@ -122,8 +116,7 @@ while [ -z ${ANSWER} ]
 do
 	read ANSWER
 done
-if [[ $ANSWER = "C" || $ANSWER = "c" || $ANSWER = "Change" || $ANSWER = "change" || $ANSWER = "CHANGE" ]]
-then
+if [[ $ANSWER = "C" || $ANSWER = "c" || $ANSWER = "Change" || $ANSWER = "change" || $ANSWER = "CHANGE" ]]; then
 	cp -f "$CURRENT_DIR"/custom_rules/75-persistent-net-generator.rules /lib/udev/rules.d/75-persistent-net-generator.rules
 	chown root:root /lib/udev/rules.d/75-persistent-net-generator.rules
 	chmod 755 /lib/udev/rules.d/75-persistent-net-generator.rules
@@ -139,8 +132,7 @@ while [ -z ${ANSWER} ]
 do
 	read ANSWER
 done
-if [[ $ANSWER = "C" || $ANSWER = "c" || $ANSWER = "Change" || $ANSWER = "change" || $ANSWER = "CHANGE" ]]
-then
+if [[ $ANSWER = "C" || $ANSWER = "c" || $ANSWER = "Change" || $ANSWER = "change" || $ANSWER = "CHANGE" ]]; then
 	cp -rv "$CURRENT_DIR"/desktop_icons/* /home/pi/Desktop
 	cp -f "$CURRENT_DIR"/custom_rules/desktop-items-0.conf /home/pi/.config/pcmanfm/LXDE-pi/desktop-items-0.conf
 	chown pi:pi /home/pi/.config/pcmanfm/LXDE-pi/desktop-items-0.conf
@@ -151,8 +143,7 @@ fi
 unset SURE
 echo -n "Some dependencies may be missing. Would you like to install them? (Y/n): "
 read SURE
-if [[ $SURE = "Y" || $SURE = "y" || $SURE = "" || $SURE = "yes" || $SURE = "Yes" ]]
-then
+if [[ $SURE = "Y" || $SURE = "y" || $SURE = "" || $SURE = "yes" || $SURE = "Yes" ]]; then
     PKGSTOINSTALL="hostapd lighttpd dnsmasq iw thunar"
     apt-get update
     apt-get upgrade -y
@@ -160,7 +151,7 @@ then
     #Check for dependencies 
     for i in $PKGSTOINSTALL ; do
         dpkg-query -W -f='${Package}\n' | grep ^$i$ > /dev/null
-        if [ $? != 0 ] ; then
+        if [[ $? != 0 ]]; then
             echo "Installing $i..."
             aptitude install $i -y
         fi
@@ -180,15 +171,13 @@ echo "So I made an option to remove it completely."
 echo "You do not have to uninstall LibreOffice to use Publicbox!" 
 echo -n "Would you like to remove LibreOffice? (Y/n): "
 read SURE
-if [[ $SURE = "Y" || $SURE = "y" || $SURE = "" || $SURE = "yes" || $SURE = "Yes" ]]
-then
+if [[ $SURE = "Y" || $SURE = "y" || $SURE = "" || $SURE = "yes" || $SURE = "Yes" ]]; then
 	apt-get purge -y libreoffice*
 	clear
 fi
 
 #begin setting up publicbox's home dir
-if [[ ! -d /opt ]]
-then
+if [[ ! -d /opt ]]; then
 	mkdir -p /opt
 fi
 
@@ -217,8 +206,7 @@ cp -f "$CURRENT_DIR"/custom_rules/wpa_supplicant.conf /etc/wpa_supplicant/wpa_su
 chown root:root /etc/wpa_supplicant/wpa_supplicant.conf
 chmod 755 /etc/wpa_supplicant/wpa_supplicant.conf
 
-if [[ ! -d /home/pi/.config/Thunar/ ]]
-then
+if [[ ! -d /home/pi/.config/Thunar/ ]]; then
 	mkdir -p /home/pi/.config/Thunar/
 	chown pi:pi /home/pi/.config/Thunar/
 fi
@@ -233,8 +221,7 @@ echo "$NET.$IP_SHORT publicbox">>/etc/hosts
 
 sed 's:DROOPY_USE_USER="no":DROOPY_USE_USER="yes":' -i /opt/publicbox/conf/publicbox.conf
 
-if [[ -d /etc/init.d/ ]]
-then
+if [[ -d /etc/init.d/ ]]; then
 	ln -s /opt/publicbox/init.d/publicbox /etc/init.d/publicbox
 	echo "To make PublicBox start at boot run: update-rc.d publicbox defaults"
 #	systemctl enable publicbox #This enables PublicBox at start up... could be useful for Live
