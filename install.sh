@@ -185,7 +185,7 @@ fi
 
 #Copy files
 cp -rv "$CURRENT_DIR"/publicbox /opt
-chmod -R 755 /opt
+chmod -R 755 /opt/publicbox
 
 #cp -f "$CURRENT_DIR"/custom_rules/70-persistent-net.rules /etc/udev/rules.d/70-persistent-net.rules
 #chmod 755 /etc/udev/rules.d/70-persistent-net.rules
