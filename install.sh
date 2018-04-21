@@ -104,7 +104,7 @@ echo "your installation of Publicbox to your device."
 echo
 echo "Would you like to leave the 75-persistent-net-generator.rules file alone or use"
 echo "the modified version that ties your wifi adapter to your adapter name? This is"
-echo "helpful if you have mltiple adapters on your machine and need PublicBox to use a"
+echo "helpful if you have multiple adapters on your machine and need PublicBox to use a"
 echo "specific adapter."
 echo "Example: Wi-fi adapter #1 --> wlan0 and Wi-fi adapter #2 --> wlan1 always"
 echo "[L]eave unchanged or [C]hange"
@@ -123,7 +123,7 @@ fi
 clear
 echo "Would you like to place commonly used shortcuts on the desktop? This will also"
 echo "remove your existing wallpaper. You can change this back anytime."
-echo "Examples: Start/Stop Publicbox, Start/Stop Asterisk etc."
+echo "Examples: Start/Stop PublicBox, Start/Stop Asterisk etc."
 echo "[L]eave unchanged or [C]hange"
 unset ANSWER
 while [ -z ${ANSWER} ]
@@ -200,13 +200,17 @@ cp -f "$CURRENT_DIR"/custom_rules/panel /home/pi/.config/lxpanel/LXDE-pi/panels/
 chown pi:pi /home/pi/.config/lxpanel/LXDE-pi/panels/panel
 chmod 755 /home/pi/.config/lxpanel/LXDE-pi/panels/panel
 
-cp -f "$CURRENT_DIR"/custom_rules/interfaces /etc/network/interfaces
-chown root:root /etc/network/interfaces
-chmod 755 /etc/network/interfaces
+versionId=$( cat /etc/os-release | grep -i "VERSION_ID" | awk -F'"' "{print $2}')
+if [ $versionId -eq "8" ]
+then
+	#cp -f "$CURRENT_DIR"/custom_rules/interfaces /etc/network/interfaces
+	#chown root:root /etc/network/interfaces
+	#chmod 755 /etc/network/interfaces
 
-cp -f "$CURRENT_DIR"/custom_rules/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf
-chown root:root /etc/wpa_supplicant/wpa_supplicant.conf
-chmod 755 /etc/wpa_supplicant/wpa_supplicant.conf
+	#cp -f "$CURRENT_DIR"/custom_rules/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf
+	#chown root:root /etc/wpa_supplicant/wpa_supplicant.conf
+	#chmod 755 /etc/wpa_supplicant/wpa_supplicant.conf
+fi
 
 if [[ ! -d /home/pi/.config/Thunar/ ]]
 then
