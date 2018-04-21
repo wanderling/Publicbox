@@ -200,7 +200,7 @@ cp -f "$CURRENT_DIR"/custom_rules/panel /home/pi/.config/lxpanel/LXDE-pi/panels/
 chown pi:pi /home/pi/.config/lxpanel/LXDE-pi/panels/panel
 chmod 755 /home/pi/.config/lxpanel/LXDE-pi/panels/panel
 
-versionId=$( cat /etc/os-release | grep -i "VERSION_ID" | awk -F'"' "{print $2}')
+versionId=$( cat /etc/os-release | grep -i "VERSION_ID" | awk -F'"' "{print $2}")
 if [ $versionId -eq "8" ]
 then
 	#cp -f "$CURRENT_DIR"/custom_rules/interfaces /etc/network/interfaces
