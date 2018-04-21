@@ -110,7 +110,7 @@ echo "the modified version that ties your wifi adapter to your adapter name? Thi
 echo "helpful if you have multiple adapters on your machine and need PublicBox to use a"
 echo "specific adapter."
 echo "Example: Wi-fi adapter #1 --> wlan0 and Wi-fi adapter #2 --> wlan1 always"
-echo "[L]eave unchanged or [C]hange"
+echo "[L]eave alone or [C]hange"
 unset ANSWER
 while [ -z ${ANSWER} ]
 do
@@ -126,7 +126,7 @@ clear
 echo "Would you like to place commonly used shortcuts on the desktop? This will also"
 echo "remove your existing wallpaper. You can change this back anytime."
 echo "Examples: Start/Stop PublicBox, Start/Stop Asterisk etc."
-echo "[L]eave unchanged or [C]hange"
+echo "[L]eave alone or [C]hange"
 unset ANSWER
 while [ -z ${ANSWER} ]
 do
@@ -138,6 +138,8 @@ if [[ $ANSWER = "C" || $ANSWER = "c" || $ANSWER = "Change" || $ANSWER = "change"
 	chown pi:pi /home/pi/.config/pcmanfm/LXDE-pi/desktop-items-0.conf
 	chmod 755 /home/pi/.config/pcmanfm/LXDE-pi/desktop-items-0.conf
 fi
+
+
 
 #Install dependencies
 unset SURE
@@ -243,6 +245,7 @@ case "$1" in
 		echo "############################################################################"
 		echo "#Edit /opt/publicbox/share/board/config.pl and change ADMIN_PASS and SECRET#"
 		echo "############################################################################"
+		/opt/publicbox/bin/board-autoconf.sh
 		;;
 	*)
 		echo "$1 is not an option. Useage: /bin/bash install.sh <default|board>"
