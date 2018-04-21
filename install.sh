@@ -27,12 +27,13 @@ if [[ $EUID -ne 0 ]]; then
         exit 0
 fi
 
-echo "This script is designed only for Rasbian x86 or ARM (Raspberry Pi 3 is recommended!) at this time."
-echo "Publicbox is a 'internet-and-pbx-in-a-box' and is made to be a communications service were there is none."
-echo "Please use responsibly!"
-echo "Press any key to continue."
-read -n 1 
-clear
+versionId=$( cat /etc/os-release | grep -i "VERSION_ID")
+if [ $versionId != ''VERSION_ID="8"' ]; then
+	clear
+	echo "I am sorry. This install is meant for Raspbian (Debian) Jessie."
+	echo "I cannot continue."
+	exit 0
+fi
 
 if [[ $1 ]]
 then
@@ -44,6 +45,14 @@ else
 	echo "Useage: /bin/bash install.sh <default|board>"
 	exit 0
 fi
+
+echo "This script is designed only for Rasbian Jessie x86/64 or ARM (Raspberry Pi 3 is recommended!) at this time."
+echo "Publicbox is a 'internet-and-pbx-in-a-box' and is made to be a communications service were there is none."
+echo "Please use responsibly!"
+sleep 2
+echo "Press any key to continue."
+read -n 1 
+clear
 	
 #Import PublicBox conf
 CURRENT_CONF=publicbox/conf/publicbox.conf
@@ -200,17 +209,13 @@ cp -f "$CURRENT_DIR"/custom_rules/panel /home/pi/.config/lxpanel/LXDE-pi/panels/
 chown pi:pi /home/pi/.config/lxpanel/LXDE-pi/panels/panel
 chmod 755 /home/pi/.config/lxpanel/LXDE-pi/panels/panel
 
-versionId=$( cat /etc/os-release | grep -i "VERSION_ID" | awk -F'"' "{print $2}")
-if [ $versionId -eq "8" ]
-then
-	#cp -f "$CURRENT_DIR"/custom_rules/interfaces /etc/network/interfaces
-	#chown root:root /etc/network/interfaces
-	#chmod 755 /etc/network/interfaces
+cp -f "$CURRENT_DIR"/custom_rules/interfaces /etc/network/interfaces
+chown root:root /etc/network/interfaces
+chmod 755 /etc/network/interfaces
 
-	#cp -f "$CURRENT_DIR"/custom_rules/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf
-	#chown root:root /etc/wpa_supplicant/wpa_supplicant.conf
-	#chmod 755 /etc/wpa_supplicant/wpa_supplicant.conf
-fi
+cp -f "$CURRENT_DIR"/custom_rules/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf
+chown root:root /etc/wpa_supplicant/wpa_supplicant.conf
+chmod 755 /etc/wpa_supplicant/wpa_supplicant.conf
 
 if [[ ! -d /home/pi/.config/Thunar/ ]]
 then
