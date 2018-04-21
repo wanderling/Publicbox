@@ -275,19 +275,65 @@ if [ "$key" = "" ]; then
 	clear
 	apt-get install -y asterisk
 	
-	HEADER_NAME=$(uname -r)
-	ASTERISKPKGS="mysql-workbench asterisk-voicemail-odbcstorage asterisk-voicemail asterisk-ooh323 asterisk-mp3 asterisk-moh-opsound-wav asterisk-moh-opsound-gsm asterisk-moh-opsound-g722 asterisk-modules asterisk-doc asterisk-core-sounds-en-gsm asterisk-core-sounds-en-wav asterisk-core-sounds-en-g722 asterisk-core-sounds-en asterisk-config subversion libmyodbc sudo libspandsp-dev libsrtp0-dev libneon27-dev libical-dev libcurl4-openssl-dev libvorbis-dev libogg-dev libasound2-dev uuid-dev uuid unixodbc-dev git autoconf libtool automake pkg-config libsqlite3-dev sqlite3 libnewt-dev libxml2-dev mpg123 libmysqlclient-dev libssl-dev libncurses5-dev build-essential linux-headers-$HEADER_NAME openssh-server mysql-server mysql-client bison flex php5-cgi php5 php5-curl php5-cli php5-mysql php-pear php5-gd curl sox "
+	HEADER_NAME=$(uname -r)    	
 	apt-get update
 	apt-get upgrade -y
-    
-	#Check for dependencies 
-	for i in $ASTERISKPKGS ; do
-        dpkg-query -W -f='${Package}\n' | grep ^$i$ > /dev/null
-        if [ $? != 0 ] ; then
-            echo "Installing $i..."
-            aptitude install $i -y
-        fi
-	done
+	apt-get -y install mysql-workbench
+	apt-get -y install asterisk-voicemail-odbcstorage
+	apt-get -y install asterisk-voicemail
+	apt-get -y install asterisk-ooh323
+	apt-get -y install asterisk-mp3
+	apt-get -y install asterisk-moh-opsound-wav 
+	apt-get -y install asterisk-moh-opsound-gsm
+	apt-get -y install asterisk-moh-opsound-g722
+	apt-get -y install asterisk-doc
+	apt-get -y install asterisk-modules
+	apt-get -y install asterisk-core-sounds-en-gsm
+	apt-get -y install asterisk-core-sounds-en-wav
+	apt-get -y install asterisk-core-sounds-en-g722
+	apt-get -y install asterisk-core-sounds-en
+	apt-get -y install asterisk-config
+	apt-get -y install subversion
+	apt-get -y install libmyodbc
+	apt-get -y install libspandsp-dev
+	apt-get -y install libsrtp0-dev
+	apt-get -y install libneon27-dev
+	apt-get -y install libical-dev
+	apt-get -y install libcurl4-openssl-dev
+	apt-get -y install libvorbis-dev
+	apt-get -y install libogg-dev
+	apt-get -y install libasound2-dev
+	apt-get -y install uuid-dev
+	apt-get -y install uuid
+	apt-get -y install unixodbc-dev
+	apt-get -y install autoconf
+	apt-get -y install libtool
+	apt-get -y install automake
+	apt-get -y install pkg-config
+	apt-get -y install libsqlite3-dev
+	apt-get -y install sqlite3
+	apt-get -y install libnewt-dev
+	apt-get -y install libxml2-dev
+	apt-get -y install mpg123
+	apt-get -y install libmysqlclient-dev
+	apt-get -y install libssl-dev
+	apt-get -y install libncurses5-dev
+	apt-get -y install build-essential
+	apt-get -y install linux-headers-$HEADER_NAME
+	apt-get -y install openssh-server
+	apt-get -y install mysql-server
+	apt-get -y install mysql-client
+	apt-get -y install bison
+	apt-get -y install flex
+	apt-get -y install php5-cgi
+	apt-get -y install php5
+	apt-get -y install php5-curl
+	apt-get -y install php5-cli
+	apt-get -y install php5-mysql
+	apt-get -y install php-pear
+	apt-get -y install php5-gd
+	apt-get -y install curl
+	apt-get -y install sox
 
 	/etc/init.d/asterisk stop
 	update-rc.d asterisk remove
