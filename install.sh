@@ -20,6 +20,10 @@
 #	LICENCE: (c) Cale Black, 2013 GPL-3
 #	ADDITIONAL LICENSE: (C) Daniel Roseman, 2017 GPL-3
 #=======================================================================
+#Import PublicBox conf
+CURRENT_CONF=publicbox/conf/publicbox.conf
+scriptfile="$(readlink -f $0)"
+CURRENT_DIR="$(dirname ${scriptfile})"
 #Must be root
 
 if [[ $EUID -ne 0 ]]; then
@@ -45,19 +49,6 @@ else
 	exit 0
 fi
 
-echo "This script is designed only for Rasbian Jessie x86/64 or ARM (Raspberry Pi 3 is recommended!) at this time."
-echo "Publicbox is a 'internet-and-pbx-in-a-box' and is made to be a communications service were there is none."
-echo "Please use responsibly!"
-sleep 2
-echo "Press any key to continue."
-read -n 1 
-clear
-	
-#Import PublicBox conf
-CURRENT_CONF=publicbox/conf/publicbox.conf
-scriptfile="$(readlink -f $0)"
-CURRENT_DIR="$(dirname ${scriptfile})"
-
 if [[ -f  "$CURRENT_DIR"/$CURRENT_CONF ]]
 then
 	. $CURRENT_CONF 2> /dev/null
@@ -65,6 +56,14 @@ else
 	echo "PublicBox config is not in its normal directory"
 	exit 0
 fi
+
+echo "This script is designed only for Rasbian Jessie x86/64 or ARM (Raspberry Pi 3 is recommended!) at this time."
+echo "Publicbox is a 'internet-and-pbx-in-a-box' and is made to be a communications service were there is none."
+echo "Please use responsibly!"
+sleep 2
+echo "Press any key to continue."
+read -n 1 
+clear
 
 #Detirmine what architecture we are installing to
 ARCH=$(uname -m)
@@ -103,7 +102,7 @@ fi
 
 #Installation customization
 echo "You will be asked some questions in order to customize and properly prepare"
-echo "your installation of Publicbox to your device."
+echo "your installation of Publicbox."
 echo
 echo "Would you like to leave the 75-persistent-net-generator.rules file alone or use"
 echo "the modified version that ties your wifi adapter to your adapter name? This is"
@@ -200,9 +199,9 @@ cp -f "$CURRENT_DIR"/custom_rules/panel /home/pi/.config/lxpanel/LXDE-pi/panels/
 chown pi:pi /home/pi/.config/lxpanel/LXDE-pi/panels/panel
 chmod 755 /home/pi/.config/lxpanel/LXDE-pi/panels/panel
 
-cp -f "$CURRENT_DIR"/custom_rules/interfaces /etc/network/interfaces
-chown root:root /etc/network/interfaces
-chmod 755 /etc/network/interfaces
+#cp -f "$CURRENT_DIR"/custom_rules/interfaces #/etc/network/interfaces
+#chown root:root /etc/network/interfaces
+#chmod 755 /etc/network/interfaces
 
 cp -f "$CURRENT_DIR"/custom_rules/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf
 chown root:root /etc/wpa_supplicant/wpa_supplicant.conf
@@ -212,6 +211,7 @@ if [[ ! -d /home/pi/.config/Thunar/ ]]; then
 	mkdir -p /home/pi/.config/Thunar/
 	chown pi:pi /home/pi/.config/Thunar/
 fi
+
 cp -f "$CURRENT_DIR"/custom_rules/uca.xml /home/pi/.config/Thunar/uca.xml
 chown pi:pi /home/pi/.config/Thunar/uca.xml
 chmod 755 /home/pi/.config/Thunar/uca.xml	
