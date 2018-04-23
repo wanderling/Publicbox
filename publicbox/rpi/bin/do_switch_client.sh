@@ -3,7 +3,7 @@
 # Wrapper script for the steps to enable wifi client
 
 systemctl stop publicbox
-if /opt/publicbox/rpi/run_client.sh ; then
+if /opt/publicbox/rpi/bin/run_client.sh ; then
     echo "Started Wifi client sucessfully!"
     exit 0
 else

@@ -1,8 +1,8 @@
 Welcome to PublicBox IRC!
 
-PublicBox creates offline wireless networks designed for anonymous file sharing, chatting, message boarding, and media streaming. You can think of it as your very own portable offline Internet in a box! 
+PublicBox creates offline wireless networks designed for anonymous file sharing, chatting, message boarding, and media streaming. You can think of it as a portable local internet server! 
 
-PublicBox is designed to be safe and secure. No logins are required and no user data is logged.
+PublicBox is designed to be safe and secure. No logins are required (except VOIP) and no user data is logged.
 
 This version of PublicBox was ported by Daniel Roseman from the PirateBox project.
 

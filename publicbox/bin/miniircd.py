@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # Hey, Emacs! This is -*-python-*-.
 #
-# Copyright (C) 2003-2016 Joel Rosdahl
+# Copyright (C) 2003-2017 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,7 +33,23 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from optparse import OptionParser
 
-VERSION = "1.1"
+VERSION = "1.2.1"
+
+
+PY3 = sys.version_info[0] >= 3
+
+if PY3:
+    def buffer_to_socket(msg):
+        return msg.encode()
+
+    def socket_to_buffer(buf):
+        return buf.decode(errors="ignore")
+else:
+    def buffer_to_socket(msg):
+        return msg
+
+    def socket_to_buffer(buf):
+        return buf
 
 
 def create_directory(path):
@@ -86,7 +102,10 @@ class Channel(object):
         if not (self._state_path and os.path.exists(self._state_path)):
             return
         data = {}
-        exec(open(self._state_path), {}, data)
+
+        with open(self._state_path, "rb") as state_file:
+            exec(state_file.read(), {}, data)
+
         self._topic = data.get("topic", "")
         self._key = data.get("key")
 
@@ -116,7 +135,10 @@ class Client(object):
         self.nickname = None
         self.user = None
         self.realname = None
-        (self.host, self.port) = socket.getpeername()
+        if self.server.ipv6:
+            (self.host, self.port, _, _) = socket.getpeername()
+        else:
+            (self.host, self.port) = socket.getpeername()
         self.__timestamp = time.time()
         self.__readbuffer = ""
         self.__writebuffer = ""
@@ -163,8 +185,8 @@ class Client(object):
                 if len(x[1]) > 0 and x[1][0] == ":":
                     arguments = [x[1][1:]]
                 else:
-                    y = string.split(x[1], " :", 1)
-                    arguments = string.split(y[0])
+                    y = x[1].split(" :", 1)
+                    arguments = y[0].split()
                     if len(y) == 2:
                         arguments.append(y[1])
             self.__handle_command(command, arguments)
@@ -212,11 +234,66 @@ class Client(object):
                        % (self.nickname, server.name, VERSION))
             self.reply("003 %s :This server was created sometime"
                        % self.nickname)
-            self.reply("004 %s :%s miniircd-%s o o"
+            self.reply("004 %s %s miniircd-%s o o"
                        % (self.nickname, server.name, VERSION))
             self.send_lusers()
             self.send_motd()
             self.__handle_command = self.__command_handler
+
+    def __send_names(self, arguments, for_join=False):
+        server = self.server
+        valid_channel_re = self.__valid_channelname_regexp
+        if len(arguments) > 0:
+            channelnames = arguments[0].split(",")
+        else:
+            channelnames = sorted(self.channels.keys())
+        if len(arguments) > 1:
+            keys = arguments[1].split(",")
+        else:
+            keys = []
+        keys.extend((len(channelnames) - len(keys)) * [None])
+        for (i, channelname) in enumerate(channelnames):
+            if for_join and irc_lower(channelname) in self.channels:
+                continue
+            if not valid_channel_re.match(channelname):
+                self.reply_403(channelname)
+                continue
+            channel = server.get_channel(channelname)
+            if channel.key is not None and channel.key != keys[i]:
+                self.reply(
+                    "475 %s %s :Cannot join channel (+k) - bad key"
+                    % (self.nickname, channelname))
+                continue
+
+            if for_join:
+                channel.add_member(self)
+                self.channels[irc_lower(channelname)] = channel
+                self.message_channel(channel, "JOIN", channelname, True)
+                self.channel_log(channel, "joined", meta=True)
+                if channel.topic:
+                    self.reply("332 %s %s :%s"
+                               % (self.nickname, channel.name, channel.topic))
+                else:
+                    self.reply("331 %s %s :No topic is set"
+                               % (self.nickname, channel.name))
+            names_prefix = "353 %s = %s :" % (self.nickname, channelname)
+            names = ""
+            # Max length: reply prefix ":server_name(space)" plus CRLF in
+            # the end.
+            names_max_len = 512 - (len(server.name) + 2 + 2)
+            for name in sorted(x.nickname for x in channel.members):
+                if not names:
+                    names = names_prefix + name
+                # Using >= to include the space between "names" and "name".
+                elif len(names) + len(name) >= names_max_len:
+                    self.reply(names)
+                    names = names_prefix + name
+                else:
+                    names += " " + name
+            if names:
+                self.reply(names)
+            self.reply("366 %s %s :End of NAMES list"
+                       % (self.nickname, channelname))
 
     def __command_handler(self, command, arguments):
         def away_handler():
@@ -241,52 +318,7 @@ class Client(object):
                     server.remove_member_from_channel(self, channelname)
                 self.channels = {}
                 return
-            channelnames = arguments[0].split(",")
-            if len(arguments) > 1:
-                keys = arguments[1].split(",")
-            else:
-                keys = []
-            keys.extend((len(channelnames) - len(keys)) * [None])
-            for (i, channelname) in enumerate(channelnames):
-                if irc_lower(channelname) in self.channels:
-                    continue
-                if not valid_channel_re.match(channelname):
-                    self.reply_403(channelname)
-                    continue
-                channel = server.get_channel(channelname)
-                if channel.key is not None and channel.key != keys[i]:
-                    self.reply(
-                        "475 %s %s :Cannot join channel (+k) - bad key"
-                        % (self.nickname, channelname))
-                    continue
-                channel.add_member(self)
-                self.channels[irc_lower(channelname)] = channel
-                self.message_channel(channel, "JOIN", channelname, True)
-                self.channel_log(channel, "joined", meta=True)
-                if channel.topic:
-                    self.reply("332 %s %s :%s"
-                               % (self.nickname, channel.name, channel.topic))
-                else:
-                    self.reply("331 %s %s :No topic is set"
-                               % (self.nickname, channel.name))
-                names_prefix = "353 %s = %s :" % (self.nickname, channelname)
-                names = ""
-                # Max length: reply prefix ":server_name(space)" plus CRLF in
-                # the end.
-                names_max_len = 512 - (len(self.server.name) + 2 + 2)
-                for name in sorted(x.nickname for x in channel.members):
-                    if not names:
-                        names = names_prefix + name
-                    # Using >= to include the space between "names" and "name".
-                    elif len(names) + len(name) >= names_max_len:
-                        self.reply(names)
-                        names = names_prefix + name
-                    else:
-                        names += " " + name
-                if names:
-                    self.reply(names)
-                self.reply("366 %s %s :End of NAMES list"
-                           % (self.nickname, channelname))
+            self.__send_names(arguments, for_join=True)
 
         def list_handler():
             if len(arguments) < 1:
@@ -296,8 +328,9 @@ class Client(object):
                 for channelname in arguments[0].split(","):
                     if server.has_channel(channelname):
                         channels.append(server.get_channel(channelname))
-            channels.sort(key=lambda x: x.name)
-            for channel in channels:
+
+            sorted_channels = sorted(channels, key=lambda x: x.name)
+            for channel in sorted_channels:
                 self.reply("322 %s %s %d :%s"
                            % (self.nickname, channel.name,
                               len(channel.members), channel.topic))
@@ -363,6 +396,9 @@ class Client(object):
 
         def motd_handler():
             self.send_motd()
+
+        def names_handler():
+            self.__send_names(arguments)
 
         def nick_handler():
             if len(arguments) < 1:
@@ -480,7 +516,8 @@ class Client(object):
 
         def wallops_handler():
             if len(arguments) < 1:
-                self.reply_461(command)
+                self.reply_461("WALLOPS")
+                return
             message = arguments[0]
             for client in server.clients.values():
                 client.message(":%s NOTICE %s :Global notice: %s"
@@ -514,7 +551,7 @@ class Client(object):
                               server.name))
                 self.reply("319 %s %s :%s"
                            % (self.nickname, user.nickname,
-                              " ".join(user.channels)))
+                              "".join(x + " " for x in user.channels)))
                 self.reply("318 %s %s :End of WHOIS list"
                            % (self.nickname, user.nickname))
             else:
@@ -529,6 +566,7 @@ class Client(object):
             "LUSERS": lusers_handler,
             "MODE": mode_handler,
             "MOTD": motd_handler,
+            "NAMES": names_handler,
             "NICK": nick_handler,
             "NOTICE": notice_and_privmsg_handler,
             "PART": part_handler,
@@ -558,7 +596,7 @@ class Client(object):
             data = ""
             quitmsg = x
         if data:
-            self.__readbuffer += data
+            self.__readbuffer += socket_to_buffer(data)
             self.__parse_read_buffer()
             self.__timestamp = time.time()
             self.__sent_ping = False
@@ -567,7 +605,7 @@ class Client(object):
 
     def socket_writable_notification(self):
         try:
-            sent = self.socket.send(self.__writebuffer)
+            sent = self.socket.send(buffer_to_socket(self.__writebuffer))
             self.server.print_debug(
                 "[%s:%d] <- %r" % (
                     self.host, self.port, self.__writebuffer[:sent]))
@@ -650,6 +688,7 @@ class Server(object):
         self.ssl_pem_file = options.ssl_pem_file
         self.motdfile = options.motd
         self.verbose = options.verbose
+        self.ipv6 = options.ipv6
         self.debug = options.debug
         self.channel_log_dir = options.channel_log_dir
         self.chroot = options.chroot
@@ -672,7 +711,10 @@ class Server(object):
             self.ssl_pem_file = os.path.abspath(self.ssl_pem_file)
         # else: might exist in the chroot jail, so just continue
 
-        if options.listen:
+        if options.listen and self.ipv6:
+            self.address = socket.getaddrinfo(
+                    options.listen, None, proto=socket.IPPROTO_TCP)[0][4][0]
+        elif options.listen:
             self.address = socket.gethostbyname(options.listen)
         else:
             self.address = ""
@@ -786,7 +828,8 @@ class Server(object):
     def start(self):
         serversockets = []
         for port in self.ports:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s = socket.socket(socket.AF_INET6 if self.ipv6 else socket.AF_INET,
+                              socket.SOCK_STREAM)
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
                 s.bind((self.address, port))
@@ -875,18 +918,19 @@ class Server(object):
                     self.clients[x].socket_writable_notification()
             now = time.time()
             if last_aliveness_check + 10 < now:
-                for client in self.clients.values():
+                for client in list(self.clients.values()):
                     client.check_aliveness()
                 last_aliveness_check = now
 
-_maketrans = str.maketrans if sys.version_info[0] == 3 else string.maketrans
+
+_maketrans = str.maketrans if PY3 else string.maketrans
 _ircstring_translation = _maketrans(
     string.ascii_lowercase.upper() + "[]\\^",
     string.ascii_lowercase + "{}|~")
 
 
 def irc_lower(s):
-    return string.translate(s, _ircstring_translation)
+    return s.translate(_ircstring_translation)
 
 
 def main(argv):
@@ -901,6 +945,10 @@ def main(argv):
         "-d", "--daemon",
         action="store_true",
         help="fork and become a daemon")
+    op.add_option(
+        "--ipv6",
+        action="store_true",
+        help="use IPv6")
     op.add_option(
         "--debug",
         action="store_true",
@@ -968,6 +1016,9 @@ def main(argv):
                  " (requires root)")
 
     (options, args) = op.parse_args(argv[1:])
+    if os.name != "posix":
+        options.chroot = False
+        options.setuid = False
     if options.debug:
         options.verbose = True
     if options.ports is None:
@@ -975,9 +1026,8 @@ def main(argv):
             options.ports = "6667"
         else:
             options.ports = "6697"
-    if options.chroot:
-        if os.getuid() != 0:
-            op.error("Must be root to use --chroot")
+    if options.chroot and os.getuid() != 0:
+        op.error("Must be root to use --chroot")
     if options.setuid:
         from pwd import getpwnam
         from grp import getgrnam
@@ -993,7 +1043,8 @@ def main(argv):
         else:
             op.error("Specify a user, or user and group separated by a colon,"
                      " e.g. --setuid daemon, --setuid nobody:nobody")
-    if (os.getuid() == 0 or os.getgid() == 0) and not options.setuid:
+    if os.name == "posix" and not options.setuid \
+            and (os.getuid() == 0 or os.getgid() == 0):
         op.error("Running this service as root is not recommended. Use the"
                  " --setuid option to switch to an unprivileged account after"
                  " startup. If you really intend to run as root, use"

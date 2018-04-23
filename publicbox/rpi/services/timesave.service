@@ -3,7 +3,9 @@ Description=PublicBox timesave service
 
 [Service]
 Type=oneshot
+RemainAfterExit=true
 ExecStart=/opt/publicbox/bin/timesave.sh /opt/publicbox/conf/publicbox.conf recover
+ExecStop=/opt/publicbox/bin/timesave.sh /opt/publicbox/conf/publicbox.conf save
 TimeoutSec=20
 
 [Install]

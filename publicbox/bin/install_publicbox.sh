@@ -66,7 +66,9 @@ if [ $2 = 'part2' ] ; then
    mkdir -p $PUBLICBOX_FOLDER/tmp
 
    #Distribute the Directory Listing files
-   $PUBLICBOX_FOLDER/bin/distribute_files.sh $SHARE_FOLDER/Shared true
+   if [ "$CUSTOM_DIRLIST_COPY" = "yes" ] ; then
+       $PIRATEBOX_FOLDER/bin/distribute_files.sh $SHARE_FOLDER/Shared true
+   fi
    #Set permissions
    chown $LIGHTTPD_USER:$LIGHTTPD_GROUP  $PUBLICBOX_FOLDER/share -R
    chmod  u+rw $PUBLICBOX_FOLDER/share
@@ -101,7 +103,7 @@ if [ $2 = 'imageboard' ] ; then
     KAREHA_RELEASE=kareha_3.1.4.zip
     if [ ! -e $PUBLICBOX_FOLDER/tmp/$KAREHA_RELEASE ] ; then
 	echo "  Wgetting kareha-zip file "
-    	wget http://wakaba.c3.cx/releases/$KAREHA_RELEASE
+    	wget http://wakaba.c3.cx/releases/Kareha/$KAREHA_RELEASE
 	if [ "$?" != "0" ] ; then
        		echo "wget kareha failed.. you can place the current file your to  $PUBLICBOX_FOLDER/tmp "
 	 fi

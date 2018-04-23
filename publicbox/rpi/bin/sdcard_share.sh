@@ -96,7 +96,7 @@ ln -s "${MOUNTPOINT}/share" /opt/publicbox/share > /dev/null
 
 
 # Force update diskwirte
-touch -t 197001010101 /opt/publicbox/www/diskusage.html
+touch -t 201701010101 /opt/publicbox/www/diskusage.html
 wget http://127.0.0.1/cgi-bin/diskwrite.py -q -O -
 
 exit 0
